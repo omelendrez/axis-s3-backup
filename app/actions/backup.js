@@ -79,7 +79,9 @@ const start = async () => {
         else if (result.status === FILE_STATUS.SKIPPED) skipped++
       } catch (error) {
         errors++
-        console.log(`[ERROR] ${doc.file}: ${error.message}`)
+        console.log(`[ERROR] ${doc.file}: ${error.name} - ${error.message}`)
+        if (error.Code) console.log(`  AWS Code: ${error.Code}`)
+        if (error.$metadata) console.log(`  HTTP Status: ${error.$metadata.httpStatusCode}`)
       }
     }
 
