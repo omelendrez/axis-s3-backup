@@ -36,6 +36,8 @@ const uploadToS3 = async (localPath, s3Key) => {
   const fileContent = fs.readFileSync(localPath)
   const contentType = getContentType(s3Key)
 
+  console.log(`[S3] Uploading to bucket: ${bucketName}, key: ${s3Key}`)
+
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: s3Key,
@@ -43,8 +45,13 @@ const uploadToS3 = async (localPath, s3Key) => {
     ContentType: contentType
   })
 
-  await s3Client.send(command)
-  return { success: true, key: s3Key }
+  try {
+    await s3Client.send(command)
+    return { success: true, key: s3Key }
+  } catch (error) {
+    console.log('[S3] Full error:', JSON.stringify(error, null, 2))
+    throw error
+  }
 }
 
 /**
