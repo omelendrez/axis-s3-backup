@@ -17,8 +17,6 @@ const bucketName = process.env.AWS_S3_BUCKET_NAME
  * Check if file exists in S3
  */
 const fileExistsInS3 = async (key) => {
-  console.log(`[S3] Checking exists - bucket: ${bucketName}, key: ${key}, region: ${process.env.AWS_S3_BUCKET_REGION}`)
-  console.log(`[S3] Using access key: ${process.env.AWS_S3_BUCKET_ACCESS_KEY}`)
   try {
     await s3Client.send(new HeadObjectCommand({
       Bucket: bucketName,
@@ -27,7 +25,6 @@ const fileExistsInS3 = async (key) => {
     return true
   } catch (error) {
     if (error.name === 'NotFound') return false
-    console.log('[S3] HeadObject error:', JSON.stringify(error, null, 2))
     throw error
   }
 }
@@ -39,8 +36,6 @@ const uploadToS3 = async (localPath, s3Key) => {
   const fileContent = fs.readFileSync(localPath)
   const contentType = getContentType(s3Key)
 
-  console.log(`[S3] Uploading to bucket: ${bucketName}, key: ${s3Key}`)
-
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: s3Key,
@@ -48,13 +43,8 @@ const uploadToS3 = async (localPath, s3Key) => {
     ContentType: contentType
   })
 
-  try {
-    await s3Client.send(command)
-    return { success: true, key: s3Key }
-  } catch (error) {
-    console.log('[S3] Full error:', JSON.stringify(error, null, 2))
-    throw error
-  }
+  await s3Client.send(command)
+  return { success: true, key: s3Key }
 }
 
 /**
