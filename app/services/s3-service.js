@@ -57,7 +57,9 @@ const getContentType = (filename) => {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.png': 'image/png',
-    '.csv': 'text/csv'
+    '.csv': 'text/csv',
+    '.gz': 'application/gzip',
+    '.sql': 'application/sql'
   }
   return types[ext] || 'application/octet-stream'
 }
