@@ -58,31 +58,35 @@ const processFile = async (doc) => {
 const start = async () => {
   console.log(`\n[${new Date().toISOString()}] Starting backup cycle...`)
 
-  try {
-    const docs = await getPendingDocuments()
+  let success = 0
+  let skipped = 0
+  let errors = 0
 
-    if (docs.length === 0) {
-      console.log('No pending documents to backup')
-      return
+  try {
+    while (true) {
+      const docs = await getPendingDocuments()
+
+      if (docs.length === 0) break
+
+      console.log(`Found ${docs.length} pending documents`)
+
+      for (const doc of docs) {
+        try {
+          const result = await processFile(doc)
+          if (result.status === FILE_STATUS.OK) success++
+          else if (result.status === FILE_STATUS.SKIPPED) skipped++
+        } catch (error) {
+          errors++
+          console.log(`[ERROR] ${doc.file}: ${error.name} - ${error.message}`)
+          if (error.Code) console.log(`  AWS Code: ${error.Code}`)
+          if (error.$metadata) console.log(`  HTTP Status: ${error.$metadata.httpStatusCode}`)
+        }
+      }
     }
 
-    console.log(`Found ${docs.length} pending documents`)
-
-    let success = 0
-    let skipped = 0
-    let errors = 0
-
-    for (const doc of docs) {
-      try {
-        const result = await processFile(doc)
-        if (result.status === FILE_STATUS.OK) success++
-        else if (result.status === FILE_STATUS.SKIPPED) skipped++
-      } catch (error) {
-        errors++
-        console.log(`[ERROR] ${doc.file}: ${error.name} - ${error.message}`)
-        if (error.Code) console.log(`  AWS Code: ${error.Code}`)
-        if (error.$metadata) console.log(`  HTTP Status: ${error.$metadata.httpStatusCode}`)
-      }
+    if (success === 0 && skipped === 0 && errors === 0) {
+      console.log('No pending documents to backup')
+      return
     }
 
     console.log(`Cycle complete: ${success} uploaded, ${skipped} skipped, ${errors} errors`)
