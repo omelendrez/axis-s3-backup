@@ -6,6 +6,26 @@ const { api } = require('../services/api-service')
 const { uploadToS3, fileExistsInS3 } = require('../services/s3-service')
 const { FILE_STATUS, BATCH_SIZE } = require('../utils/constants')
 
+const MAX_RETRIES = 3
+const RETRY_BASE_DELAY_MS = 2000
+const MAX_CYCLES = 100
+
+const withRetry = async (fn, label) => {
+  let lastError
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+      if (attempt < MAX_RETRIES) {
+        console.log(`[RETRY] ${label} (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`)
+        await new Promise((resolve) => setTimeout(resolve, RETRY_BASE_DELAY_MS * attempt))
+      }
+    }
+  }
+  throw lastError
+}
+
 /**
  * Get pending documents from backend API
  */
@@ -63,7 +83,9 @@ const start = async () => {
   let errors = 0
 
   try {
-    while (true) {
+    let cycles = 0
+    while (cycles < MAX_CYCLES) {
+      cycles++
       const docs = await getPendingDocuments()
 
       if (docs.length === 0) break
@@ -72,7 +94,7 @@ const start = async () => {
 
       for (const doc of docs) {
         try {
-          const result = await processFile(doc)
+          const result = await withRetry(() => processFile(doc), doc.file)
           if (result.status === FILE_STATUS.OK) success++
           else if (result.status === FILE_STATUS.SKIPPED) skipped++
         } catch (error) {
@@ -82,6 +104,10 @@ const start = async () => {
           if (error.$metadata) console.log(`  HTTP Status: ${error.$metadata.httpStatusCode}`)
         }
       }
+    }
+
+    if (cycles >= MAX_CYCLES) {
+      console.log(`[WARN] Reached max cycle limit (${MAX_CYCLES}), stopping backup cycle`)
     }
 
     if (success === 0 && skipped === 0 && errors === 0) {

@@ -13,15 +13,28 @@ if (process.env.DATABASE_BACKUP_FOLDER_URI) {
   console.log(`Database backup folder: ${process.env.DATABASE_BACKUP_FOLDER_URI}`)
 }
 
+let shuttingDown = false
+
+const handleShutdown = (signal) => {
+  console.log(`\nReceived ${signal}, shutting down after current cycle...`)
+  shuttingDown = true
+}
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'))
+process.on('SIGINT', () => handleShutdown('SIGINT'))
+
 ;(async () => {
   // Run immediately on start
   await start()
   await uploadDatabaseBackup()
 
   // Then run on schedule
-  while (true) {
+  while (!shuttingDown) {
     await sleep(BACKUP_FREQUENCY)
+    if (shuttingDown) break
     await start()
     await uploadDatabaseBackup()
   }
+
+  console.log('axis-s3-backup service stopped')
 })()

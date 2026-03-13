@@ -33,13 +33,15 @@ const fileExistsInS3 = async (key) => {
  * Upload file to S3
  */
 const uploadToS3 = async (localPath, s3Key) => {
-  const fileContent = fs.readFileSync(localPath)
+  const fileStream = fs.createReadStream(localPath)
+  const { size } = fs.statSync(localPath)
   const contentType = getContentType(s3Key)
 
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: s3Key,
-    Body: fileContent,
+    Body: fileStream,
+    ContentLength: size,
     ContentType: contentType
   })
 
