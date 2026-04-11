@@ -1,6 +1,5 @@
 const path = require('node:path')
 const fs = require('node:fs')
-require('dotenv').config()
 
 const { uploadToS3, fileExistsInS3 } = require('../services/s3-service')
 const { FILE_STATUS } = require('../utils/constants')
@@ -21,18 +20,23 @@ const getLatestBackupFile = () => {
     return null
   }
 
-  const files = fs.readdirSync(DATABASE_BACKUP_FOLDER)
-    .filter(file => file.endsWith('.sql.gz'))
-    .map(file => ({
-      name: file,
-      path: path.join(DATABASE_BACKUP_FOLDER, file),
-      // Parse date from filename (format: YYYY-MM-DD.name.sql.gz)
-      date: file.match(/^(\d{4}-\d{2}-\d{2})\./) ? file.match(/^(\d{4}-\d{2}-\d{2})\./)[1] : null
-    }))
-    .filter(file => file.date !== null)
-    .sort((a, b) => b.date.localeCompare(a.date)) // Sort descending by date
+  try {
+    const files = fs.readdirSync(DATABASE_BACKUP_FOLDER)
+      .filter(file => file.endsWith('.sql.gz'))
+      .map(file => ({
+        name: file,
+        path: path.join(DATABASE_BACKUP_FOLDER, file),
+        // Parse date from filename (format: YYYY-MM-DD.name.sql.gz)
+        date: file.match(/^(\d{4}-\d{2}-\d{2})\./) ? file.match(/^(\d{4}-\d{2}-\d{2})\./)[1] : null
+      }))
+      .filter(file => file.date !== null)
+      .sort((a, b) => b.date.localeCompare(a.date)) // Sort descending by date
 
-  return files.length > 0 ? files[0] : null
+    return files.length > 0 ? files[0] : null
+  } catch (error) {
+    console.log(`[DB BACKUP] Error reading backup folder: ${error.message}`)
+    return null
+  }
 }
 
 /**

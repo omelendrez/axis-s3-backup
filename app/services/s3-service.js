@@ -1,4 +1,3 @@
-require('dotenv').config()
 const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -34,19 +33,24 @@ const fileExistsInS3 = async (key) => {
  */
 const uploadToS3 = async (localPath, s3Key) => {
   const fileStream = fs.createReadStream(localPath)
-  const { size } = fs.statSync(localPath)
-  const contentType = getContentType(s3Key)
+  try {
+    const { size } = fs.statSync(localPath)
+    const contentType = getContentType(s3Key)
 
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: s3Key,
-    Body: fileStream,
-    ContentLength: size,
-    ContentType: contentType
-  })
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: s3Key,
+      Body: fileStream,
+      ContentLength: size,
+      ContentType: contentType
+    })
 
-  await s3Client.send(command)
-  return { success: true, key: s3Key }
+    await s3Client.send(command)
+    return { success: true, key: s3Key }
+  } catch (error) {
+    fileStream.destroy()
+    throw error
+  }
 }
 
 /**
