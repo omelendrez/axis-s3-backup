@@ -1,6 +1,5 @@
 const path = require('node:path')
 const fs = require('node:fs')
-require('dotenv').config()
 
 const { api } = require('../services/api-service')
 const { uploadToS3, fileExistsInS3 } = require('../services/s3-service')

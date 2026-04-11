@@ -4,7 +4,7 @@
   "description": "Scheduled service to backup axis-documents files to AWS S3",
   "main": "app/index.js",
   "engines": {
-    "node": ">=14.21.3 <=20.9.0"
+    "node": "16.20.2"
   },
   "scripts": {
     "dev": "nodemon ./app",
